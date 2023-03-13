@@ -81,8 +81,7 @@ func stripRegistry(image string) string {
 	}
 }
 
-func applyDefaultRegistryOverride(image string) string {
-	customRegistry := GetImageConfig().ImageRegistry
+func applyDefaultRegistryOverride(customRegistry, image string) string {
 	customRegistry = strings.TrimSuffix(customRegistry, "/")
 
 	if customRegistry == "" {
@@ -93,8 +92,21 @@ func applyDefaultRegistryOverride(image string) string {
 	}
 }
 
-func ApplyRegistry(image string) string {
-	return applyDefaultRegistryOverride(image)
+func getRegistryOverride(imageType string) string {
+	customRegistry := GetImageConfig().DefaultImages.ImageComponents[imageType].ImageRegistry
+	defaultRegistry := GetImageConfig().ImageRegistry
+
+	if customRegistry != "" {
+		return customRegistry
+	}
+
+	return defaultRegistry
+}
+
+func applyRegistry(imageType, image string) string {
+	registry := getRegistryOverride(imageType)
+
+	return applyDefaultRegistryOverride(registry, image)
 }
 
 func GetImageConfig() *configv1beta1.ImageConfig {
@@ -134,10 +146,10 @@ func getImageComponents(serverType string) (string, string) {
 	if defaults != nil {
 		var component configv1beta1.ImageComponent
 		if serverType == "dse" {
-			component = defaults.DSEImageComponent
+			component = defaults.ImageComponents[configv1beta1.DSEImageComponent]
 		}
 		if serverType == "cassandra" {
-			component = defaults.CassandraImageComponent
+			component = defaults.ImageComponents[configv1beta1.CassandraImageComponent]
 		}
 
 		if component.Repository != "" {
@@ -150,7 +162,7 @@ func getImageComponents(serverType string) (string, string) {
 
 func GetCassandraImage(serverType, version string) (string, error) {
 	if found, image := getCassandraContainerImageOverride(serverType, version); found {
-		return ApplyRegistry(image), nil
+		return applyRegistry(serverType, image), nil
 	}
 
 	if serverType == "dse" {
@@ -165,24 +177,41 @@ func GetCassandraImage(serverType, version string) (string, error) {
 
 	prefix, suffix := getImageComponents(serverType)
 
-	return ApplyRegistry(fmt.Sprintf("%s:%s%s", prefix, version, suffix)), nil
+	return applyRegistry(serverType, fmt.Sprintf("%s:%s%s", prefix, version, suffix)), nil
+}
+
+func GetConfiguredImage(imageType, image string) string {
+	return applyRegistry(imageType, image)
+}
+
+func GetImage(imageType string) string {
+	return applyRegistry(imageType, GetImageConfig().Images.Others[imageType])
 }
 
 func GetConfigBuilderImage() string {
-	return ApplyRegistry(GetImageConfig().Images.ConfigBuilder)
+	return applyRegistry(configv1beta1.ConfigBuilderImageComponent, GetImageConfig().Images.ConfigBuilder)
 }
 
 func GetSystemLoggerImage() string {
-	return ApplyRegistry(GetImageConfig().Images.SystemLogger)
+	return applyRegistry(configv1beta1.SystemLoggerImageComponent, GetImageConfig().Images.SystemLogger)
 }
 
-func AddDefaultRegistryImagePullSecrets(podSpec *corev1.PodSpec) bool {
+func AddDefaultRegistryImagePullSecrets(podSpec *corev1.PodSpec) {
+	secretNames := make([]string, 0)
 	secretName := GetImageConfig().ImagePullSecret.Name
 	if secretName != "" {
+		secretNames = append(secretNames, secretName)
+	}
+
+	for _, component := range GetImageConfig().DefaultImages.ImageComponents {
+		if component.ImagePullSecret.Name != "" {
+			secretNames = append(secretNames, component.ImagePullSecret.Name)
+		}
+	}
+
+	for _, s := range secretNames {
 		podSpec.ImagePullSecrets = append(
 			podSpec.ImagePullSecrets,
-			corev1.LocalObjectReference{Name: secretName})
-		return true
+			corev1.LocalObjectReference{Name: s})
 	}
-	return false
 }
