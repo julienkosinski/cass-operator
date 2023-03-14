@@ -137,6 +137,9 @@ func TestExtendedImageConfigParsing(t *testing.T) {
 	assert.Equal("localhost:5005/k8ssandra/medusa:latest", medusaImage)
 	reaperImage := GetImage("reaper")
 	assert.Equal("localhost:5000/k8ssandra/reaper:latest", reaperImage)
+
+	assert.Equal(corev1.PullAlways, GetImagePullPolicy(configv1beta1.SystemLoggerImageComponent))
+	assert.Equal(corev1.PullIfNotPresent, GetImagePullPolicy(configv1beta1.CassandraImageComponent))
 }
 
 func TestDefaultRepositories(t *testing.T) {

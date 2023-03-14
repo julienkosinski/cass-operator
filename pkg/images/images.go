@@ -188,6 +188,19 @@ func GetImage(imageType string) string {
 	return applyRegistry(imageType, GetImageConfig().Images.Others[imageType])
 }
 
+func GetImagePullPolicy(imageType string) corev1.PullPolicy {
+	customPolicy := GetImageConfig().DefaultImages.ImageComponents[imageType].ImagePullPolicy
+	defaultOverridePolicy := GetImageConfig().ImagePullPolicy
+
+	if customPolicy != "" {
+		return customPolicy
+	} else if defaultOverridePolicy != "" {
+		return defaultOverridePolicy
+	}
+
+	return ""
+}
+
 func GetConfigBuilderImage() string {
 	return applyRegistry(configv1beta1.ConfigBuilderImageComponent, GetImageConfig().Images.ConfigBuilder)
 }
