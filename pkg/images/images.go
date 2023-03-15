@@ -209,16 +209,29 @@ func GetSystemLoggerImage() string {
 	return applyRegistry(configv1beta1.SystemLoggerImageComponent, GetImageConfig().Images.SystemLogger)
 }
 
-func AddDefaultRegistryImagePullSecrets(podSpec *corev1.PodSpec) {
+func AddDefaultRegistryImagePullSecrets(podSpec *corev1.PodSpec, imageTypes ...string) {
 	secretNames := make([]string, 0)
 	secretName := GetImageConfig().ImagePullSecret.Name
 	if secretName != "" {
 		secretNames = append(secretNames, secretName)
 	}
 
-	for _, component := range GetImageConfig().DefaultImages.ImageComponents {
-		if component.ImagePullSecret.Name != "" {
-			secretNames = append(secretNames, component.ImagePullSecret.Name)
+	imageTypesToAdd := make(map[string]bool, len(imageTypes))
+	if len(imageTypes) < 1 {
+		for name := range GetImageConfig().DefaultImages.ImageComponents {
+			imageTypesToAdd[name] = true
+		}
+	} else {
+		for _, image := range imageTypes {
+			imageTypesToAdd[image] = true
+		}
+	}
+
+	for name, component := range GetImageConfig().DefaultImages.ImageComponents {
+		if _, found := imageTypesToAdd[name]; found {
+			if component.ImagePullSecret.Name != "" {
+				secretNames = append(secretNames, component.ImagePullSecret.Name)
+			}
 		}
 	}
 
