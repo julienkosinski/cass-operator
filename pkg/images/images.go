@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	imageConfig *configv1beta1.ImageConfig
+	imageConfig configv1beta1.ImageConfig
 	scheme      = runtime.NewScheme()
 )
 
@@ -56,7 +56,7 @@ func LoadImageConfig(content []byte) (*configv1beta1.ImageConfig, error) {
 		return nil, fmt.Errorf("could not decode file into runtime.Object: %v", err)
 	}
 
-	imageConfig = parsedImageConfig
+	imageConfig = *parsedImageConfig
 
 	return parsedImageConfig, nil
 }
@@ -111,7 +111,7 @@ func applyRegistry(imageType, image string) string {
 
 func GetImageConfig() *configv1beta1.ImageConfig {
 	// For now, this is static configuration (updated only on start of the pod), even if the actual ConfigMap underneath is updated.
-	return imageConfig
+	return &imageConfig
 }
 
 func getCassandraContainerImageOverride(serverType, version string) (bool, string) {

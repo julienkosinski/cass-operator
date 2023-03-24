@@ -20,7 +20,7 @@ import (
 
 func TestDefaultRegistryOverride(t *testing.T) {
 	assert := assert.New(t)
-	imageConfig = &configv1beta1.ImageConfig{}
+	imageConfig = configv1beta1.ImageConfig{}
 	imageConfig.ImageRegistry = "localhost:5000"
 	imageConfig.Images = &configv1beta1.Images{}
 	imageConfig.DefaultImages = &configv1beta1.DefaultImages{}
@@ -39,7 +39,7 @@ func TestCassandraOverride(t *testing.T) {
 
 	customImageName := "my-custom-image:4.0.0"
 
-	imageConfig = &configv1beta1.ImageConfig{}
+	imageConfig = configv1beta1.ImageConfig{}
 	imageConfig.Images = &configv1beta1.Images{}
 	imageConfig.DefaultImages = &configv1beta1.DefaultImages{}
 
@@ -144,7 +144,7 @@ func TestExtendedImageConfigParsing(t *testing.T) {
 
 func TestDefaultRepositories(t *testing.T) {
 	assert := assert.New(t)
-	imageConfig = &configv1beta1.ImageConfig{}
+	imageConfig = configv1beta1.ImageConfig{}
 	imageConfig.Images = &configv1beta1.Images{}
 	imageConfig.DefaultImages = &configv1beta1.DefaultImages{}
 
