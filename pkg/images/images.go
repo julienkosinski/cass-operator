@@ -93,7 +93,14 @@ func applyDefaultRegistryOverride(customRegistry, image string) string {
 }
 
 func getRegistryOverride(imageType string) string {
-	customRegistry := GetImageConfig().DefaultImages.ImageComponents[imageType].ImageRegistry
+	customRegistry := ""
+	defaults := GetImageConfig().DefaultImages
+	if defaults != nil {
+		if component, found := defaults.ImageComponents[imageType]; found {
+			customRegistry = component.ImageRegistry
+		}
+	}
+
 	defaultRegistry := GetImageConfig().ImageRegistry
 
 	if customRegistry != "" {
@@ -189,7 +196,14 @@ func GetImage(imageType string) string {
 }
 
 func GetImagePullPolicy(imageType string) corev1.PullPolicy {
-	customPolicy := GetImageConfig().DefaultImages.ImageComponents[imageType].ImagePullPolicy
+	var customPolicy corev1.PullPolicy
+	defaults := GetImageConfig().DefaultImages
+	if defaults != nil {
+		if component, found := defaults.ImageComponents[imageType]; found {
+			customPolicy = component.ImagePullPolicy
+		}
+	}
+
 	defaultOverridePolicy := GetImageConfig().ImagePullPolicy
 
 	if customPolicy != "" {
@@ -218,8 +232,10 @@ func AddDefaultRegistryImagePullSecrets(podSpec *corev1.PodSpec, imageTypes ...s
 
 	imageTypesToAdd := make(map[string]bool, len(imageTypes))
 	if len(imageTypes) < 1 {
-		for name := range GetImageConfig().DefaultImages.ImageComponents {
-			imageTypesToAdd[name] = true
+		if GetImageConfig().DefaultImages != nil {
+			for name := range GetImageConfig().DefaultImages.ImageComponents {
+				imageTypesToAdd[name] = true
+			}
 		}
 	} else {
 		for _, image := range imageTypes {
@@ -227,10 +243,12 @@ func AddDefaultRegistryImagePullSecrets(podSpec *corev1.PodSpec, imageTypes ...s
 		}
 	}
 
-	for name, component := range GetImageConfig().DefaultImages.ImageComponents {
-		if _, found := imageTypesToAdd[name]; found {
-			if component.ImagePullSecret.Name != "" {
-				secretNames = append(secretNames, component.ImagePullSecret.Name)
+	if GetImageConfig().DefaultImages != nil {
+		for name, component := range GetImageConfig().DefaultImages.ImageComponents {
+			if _, found := imageTypesToAdd[name]; found {
+				if component.ImagePullSecret.Name != "" {
+					secretNames = append(secretNames, component.ImagePullSecret.Name)
+				}
 			}
 		}
 	}
